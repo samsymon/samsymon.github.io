@@ -1,0 +1,19 @@
+title: "Samsymon"
+description: "Personal website and notes"
+baseurl: ""                     # Leave empty since this is a user site
+url: "https://samsymon.github.io"
+
+# Optional social links (add or remove as you like)
+github_username: samsymon
+twitter_username: samsymon
+email: 
+
+# Build settings
+theme: minima                   # simple built-in theme (no setup needed)
+markdown: kramdown
+
+# Optional settings for better output
+show_excerpts: true
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
