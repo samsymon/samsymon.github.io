@@ -15,14 +15,6 @@
     referrerpolicy="no-referrer"
   />
 
-  <!-- Lightbox2 JavaScript -->
-    <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"
-    integrity="sha512-pYJtV5f901C2GzqI2vC2K6MCXbkDe4OhVk4l3D1SWIcJ+Yx3gWkVJ8zqildlTQlRlQmHkJjz4Kp6ACEqG/ZfWg=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer">
-    </script>
-
 
   <style>
     :root {
@@ -311,7 +303,7 @@
         </p>
         <ul>
           <li>ZFS really prefers ECC RAM and more memory (16–32 GB+).</li>
-          <li>Works best with uniform drive sizes, not a mix of 3 TB and 4 TB disks.</li>
+          <li>Works best with uniform drive sizes, not a mix of 500 GB, 2 TB and 4 TB disks.</li>
           <li>Heavier on resources compared to a lightweight Debian system.</li>
         </ul>
         <p>
@@ -451,10 +443,12 @@
           <div class="card">
             <h3>Storage &amp; HBA</h3>
             <ul>
-              <li><strong>HBA Card:</strong> Inspur / LSI 9207-8i (IT mode, SAS2308)</li>
-              <li>Data disks: mixed 3 TB &amp; 4 TB drives in two pools</li>
-              <li><strong>OS SSD:</strong> 128 GB (planned mirror)</li>
-              <li><strong>Cache:</strong> 256 GB NVMe for Docker/appdata and caching experiments</li>
+              <li>Data disks: mixed 4 TB, 2 TB and 500 GB HDDs (15 drives total across two pools)</li>
+              <li><strong>OS SSD:</strong> 2 × 240GB SSDs (mdadm mirror)</li>
+              <li><strong>Docker SSD:</strong> 500GB Samsung 850 EVO for Docker / appdata</li>
+              <li><strong>Logs & Backup SSD:</strong> 500GB SSD dedicated for OMV backup & logs</li>
+              <li><strong>NVMe Cache:</strong> 256GB Toshiba NVMe for caching / bcache tests</li>
+
             </ul>
           </div>
 
@@ -537,7 +531,7 @@
           The layout is roughly:
         </p>
         <ul>
-          <li>OS: 128 GB SSD (planned mirror).</li>
+          <li>OS: 240 GB SSD mirror.</li>
           <li>Docker + Portainer + appdata: separate SSD.</li>
           <li>Media and data: spinning HDDs in SnapRAID/MergerFS pools.</li>
         </ul>
