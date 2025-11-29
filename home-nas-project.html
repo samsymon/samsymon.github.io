@@ -1,817 +1,1073 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Building a Power-Efficient Home NAS with OMV | Sam Symon</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="How I built a power-efficient 16-bay home NAS, why I chose OpenMediaVault over TrueNAS and Unraid, and what I learned after losing a Windows Storage Spaces pool.">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Building a Power-Efficient Home NAS with OMV | Sam Symon</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="How I built a power-efficient 16-bay home NAS, why I chose OpenMediaVault over TrueNAS and Unraid, and what I learned after losing a Windows Storage Spaces pool."
+    />
 
-  <!-- Lightbox2 CSS (for image gallery popups) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
-    integrity="sha512-Ho7K4HkXBn4pL7G1KQ1x8OOGwN2Mk3RcelK9Adxg09oh2PChVJNfDEKukbYV0E+R5s8BrnLPyY1c8O0V5rW7kQ=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+    <!-- Lightbox2 CSS (for image gallery popups) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
+      integrity="sha512-Ho7K4HkXBn4pL7G1KQ1x8OOGwN2Mk3RcelK9Adxg09oh2PChVJNfDEKukbYV0E+R5s8BrnLPyY1c8O0V5rW7kQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
 
-
-  <style>
-    :root {
-      --bg: #ffffff;
-      --bg-alt: #f5f5f7;
-      --text: #111827;
-      --muted: #6b7280;
-      --accent: #2563eb;
-      --border: #e5e7eb;
-      --code-bg: #f3f4f6;
-    }
-
-    @media (prefers-color-scheme: dark) {
+    <style>
       :root {
-        --bg: #020617;
-        --bg-alt: #0b1220;
-        --text: #e5e7eb;
-        --muted: #9ca3af;
-        --accent: #60a5fa;
-        --border: #1f2933;
-        --code-bg: #020617;
+        --bg: #ffffff;
+        --bg-alt: #f5f5f7;
+        --text: #111827;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --border: #e5e7eb;
+        --code-bg: #f3f4f6;
       }
-    }
 
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-                   Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-    }
-
-    body {
-      padding: 0 1rem 4rem;
-    }
-
-    .page {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    header {
-      padding: 1.5rem 0 1rem;
-    }
-
-    header h1 {
-      margin: 0 0 0.5rem;
-      font-size: clamp(1.8rem, 3vw, 2.4rem);
-      line-height: 1.2;
-    }
-
-    header p {
-      margin: 0.25rem 0;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    header .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 1.25rem;
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-    }
-
-    header .meta span {
-      color: var(--muted);
-    }
-
-    a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    .tag {
-      display: inline-block;
-      padding: 0.1rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      background: var(--bg-alt);
-      border: 1px solid var(--border);
-      color: var(--muted);
-    }
-
-    .toc {
-      margin: 1.5rem 0 2rem;
-      padding: 1rem 1.25rem;
-      border-radius: 0.75rem;
-      background: var(--bg-alt);
-      border: 1px solid var(--border);
-      font-size: 0.95rem;
-    }
-
-    .toc strong {
-      display: block;
-      margin-bottom: 0.4rem;
-    }
-
-    .toc ol {
-      padding-left: 1.25rem;
-      margin: 0.25rem 0 0;
-    }
-
-    .toc a {
-      text-decoration: none;
-    }
-
-    main h2 {
-      margin-top: 2.5rem;
-      margin-bottom: 0.75rem;
-      font-size: 1.4rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.3rem;
-    }
-
-    main h3 {
-      margin-top: 1.75rem;
-      margin-bottom: 0.4rem;
-      font-size: 1.15rem;
-    }
-
-    p {
-      margin: 0.3rem 0 0.8rem;
-    }
-
-    ul, ol {
-      margin: 0.25rem 0 0.75rem 1.4rem;
-      padding-left: 0;
-    }
-
-    li {
-      margin-bottom: 0.3rem;
-    }
-
-    .callout {
-      border-left: 3px solid var(--accent);
-      padding: 0.75rem 1rem;
-      margin: 1.25rem 0;
-      background: var(--bg-alt);
-      border-radius: 0.5rem;
-      font-size: 0.93rem;
-    }
-
-    .grid {
-      display: grid;
-      gap: 0.75rem;
-    }
-
-    @media (min-width: 720px) {
-      .grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #020617;
+          --bg-alt: #0b1220;
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --accent: #60a5fa;
+          --border: #1f2933;
+          --code-bg: #020617;
+        }
       }
-    }
 
-    .card {
-      border-radius: 0.75rem;
-      border: 1px solid var(--border);
-      padding: 0.75rem 0.9rem;
-      background: var(--bg-alt);
-      font-size: 0.93rem;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    .card h3 {
-      margin-top: 0;
-      margin-bottom: 0.4rem;
-      font-size: 1rem;
-    }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+      }
 
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.88rem;
-      background: var(--code-bg);
-      padding: 0.1rem 0.25rem;
-      border-radius: 0.25rem;
-      border: 1px solid var(--border);
-    }
+      body {
+        padding: 0 1rem 4rem;
+      }
 
-    pre {
-      background: var(--code-bg);
-      border-radius: 0.75rem;
-      padding: 0.75rem 0.9rem;
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      font-size: 0.88rem;
-    }
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+      }
 
-    pre code {
-      border: none;
-      padding: 0;
-      background: none;
-      white-space: pre;
-    }
+      header {
+        padding: 1.5rem 0 1rem;
+      }
 
-    footer {
-      margin-top: 3rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
+      header h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.8rem, 3vw, 2.4rem);
+        line-height: 1.2;
+      }
 
-    /* Photo styling for galleries */
-    .photo {
-      width: 100%;
-      max-width: 650px;
-      display: block;
-      margin: 1.5rem auto;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <header>
-      <h1>Building a Power-Efficient Home NAS with OMV (and How a Windows Storage Pool Ate My Data)</h1>
-      <p>How I turned a used Supermicro 16-bay chassis into a quiet, efficient NAS, why I chose OpenMediaVault over TrueNAS and Unraid, and what I learned after losing an entire Windows Storage Spaces pool.</p>
-      <div class="meta">
-        <span>By <strong>Sam Symon</strong></span>
-        <span>Updated: <time datetime="2025-11-27">Nov 27, 2025</time></span>
-        <span class="tag">Home Lab</span>
-        <span class="tag">NAS</span>
-        <span class="tag">Power Saving</span>
-      </div>
-    </header>
+      header p {
+        margin: 0.25rem 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
 
-    <nav class="toc">
-      <strong>Contents</strong>
-      <ol>
-        <li><a href="#why-nas">Why I Needed a Home NAS</a></li>
-        <li><a href="#os-choice">Choosing the NAS OS: TrueNAS vs Unraid vs OMV</a></li>
-        <li><a href="#windows-pool">When Windows Storage Spaces Ate My Data</a></li>
-        <li><a href="#hardware">Hardware: Reusing a Supermicro 836 the Smart Way</a></li>
-        <li><a href="#nas-photos">NAS Build Photos</a></li>
-        <li><a href="#omv-setup">OMV 7 Setup: OS, Plugins, Docker &amp; Storage Layers</a></li>
-        <li><a href="#omv-screenshots">OMV Dashboard Screenshots</a></li>
-        <li><a href="#networking">Networking: Link Aggregation, SMB, and Users</a></li>
-        <li><a href="#power">Power Saving, Cooling, and Stability</a></li>
-        <li><a href="#lessons">Key Lessons and Final Thoughts</a></li>
-        <li><a href="#bonus-led">Bonus: LED Bay Mapping Tool (Generic &amp; Safe)</a></li>
-      </ol>
-    </nav>
+      header .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+      }
 
-    <main>
-      <section id="why-nas">
-        <h2>1. Why I Needed a Home NAS</h2>
+      header .meta span {
+        color: var(--muted);
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 0.1rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        background: var(--bg-alt);
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      .toc {
+        margin: 1.5rem 0 2rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.75rem;
+        background: var(--bg-alt);
+        border: 1px solid var(--border);
+        font-size: 0.95rem;
+      }
+
+      .toc strong {
+        display: block;
+        margin-bottom: 0.4rem;
+      }
+
+      .toc ol {
+        padding-left: 1.25rem;
+        margin: 0.25rem 0 0;
+      }
+
+      .toc a {
+        text-decoration: none;
+      }
+
+      main h2 {
+        margin-top: 2.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 1.4rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.3rem;
+      }
+
+      main h3 {
+        margin-top: 1.75rem;
+        margin-bottom: 0.4rem;
+        font-size: 1.15rem;
+      }
+
+      p {
+        margin: 0.3rem 0 0.8rem;
+      }
+
+      ul,
+      ol {
+        margin: 0.25rem 0 0.75rem 1.4rem;
+        padding-left: 0;
+      }
+
+      li {
+        margin-bottom: 0.3rem;
+      }
+
+      .callout {
+        border-left: 3px solid var(--accent);
+        padding: 0.75rem 1rem;
+        margin: 1.25rem 0;
+        background: var(--bg-alt);
+        border-radius: 0.5rem;
+        font-size: 0.93rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      @media (min-width: 720px) {
+        .grid-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .card {
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+        padding: 0.75rem 0.9rem;
+        background: var(--bg-alt);
+        font-size: 0.93rem;
+      }
+
+      .card h3 {
+        margin-top: 0;
+        margin-bottom: 0.4rem;
+        font-size: 1rem;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 0.88rem;
+        background: var(--code-bg);
+        padding: 0.1rem 0.25rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--border);
+      }
+
+      pre {
+        background: var(--code-bg);
+        border-radius: 0.75rem;
+        padding: 0.75rem 0.9rem;
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        font-size: 0.88rem;
+      }
+
+      pre code {
+        border: none;
+        padding: 0;
+        background: none;
+        white-space: pre;
+      }
+
+      footer {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      /* Photo styling for galleries */
+      .photo {
+        width: 100%;
+        max-width: 650px;
+        display: block;
+        margin: 1.5rem auto;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>
+          Building a Power-Efficient Home NAS with OMV (and How a Windows
+          Storage Pool Ate My Data)
+        </h1>
         <p>
-          For years my storage was a mix of USB drives, desktop internal drives, and cloud services like Google Photos and Amazon. It worked, but:
+          How I turned a used Supermicro 16-bay chassis into a quiet, efficient
+          NAS, why I chose OpenMediaVault over TrueNAS and Unraid, and what I
+          learned after losing an entire Windows Storage Spaces pool.
         </p>
-        <ul>
-          <li>Backups were inconsistent.</li>
-          <li>Power usage was higher than it needed to be.</li>
-          <li>Nothing was really “centralized” for the whole family.</li>
-        </ul>
-        <p>
-          I wanted a proper home NAS that could:
-        </p>
-        <ul>
-          <li>Store family photos, videos, and documents reliably.</li>
-          <li>Serve Plex media smoothly.</li>
-          <li>Run 24×7 without burning electricity.</li>
-          <li>Stay simple enough to recover from, even if the NAS OS dies.</li>
-        </ul>
-        <p>
-          This is the journey from Windows Storage Spaces (and total data loss) to a power-efficient, Linux-based NAS using OpenMediaVault (OMV) with SnapRAID and MergerFS.
-        </p>
-      </section>
-
-      <section id="os-choice">
-        <h2>2. Choosing the NAS OS: TrueNAS vs Unraid vs OMV</h2>
-
-        <h3>TrueNAS: Amazing ZFS, Wrong Fit for My Hardware</h3>
-        <p>
-          I first looked at TrueNAS Core/Scale. ZFS is fantastic for data integrity, snapshots, and self-healing, but it isn’t free:
-        </p>
-        <ul>
-          <li>ZFS really prefers ECC RAM and more memory (16–32 GB+).</li>
-          <li>Works best with uniform drive sizes, not a mix of 500 GB, 2 TB and 4 TB disks.</li>
-          <li>Heavier on resources compared to a lightweight Debian system.</li>
-        </ul>
-        <p>
-          On my reused Supermicro 16-bay chassis with mixed drives and non-ECC DDR4, it felt like overkill and not optimal for power saving.
-        </p>
-
-        <h3>Unraid: Very Flexible, but Paid and Not My Final Pick</h3>
-        <p>
-          Unraid was tempting:
-        </p>
-        <ul>
-          <li>Mix any drive sizes in one array.</li>
-          <li>Single or dual parity for protection.</li>
-          <li>Excellent Docker support and a friendly UI.</li>
-          <li>Drives can spin down individually to save power.</li>
-        </ul>
-        <p>
-          But there were trade-offs:
-        </p>
-        <ul>
-          <li>License cost for large drive counts.</li>
-          <li>Write performance tied to parity and cache behavior.</li>
-          <li>Rebuild times and power usage during parity operations.</li>
-        </ul>
-        <p>
-          I liked it, but I wanted something free, scriptable, and extremely lightweight, especially given my reused backplane and 3 Gbps SAS limitation.
-        </p>
-
-        <h3>OpenMediaVault: Lightweight, Scriptable, and Power-Friendly</h3>
-        <p>
-          OpenMediaVault 7 (OMV) is Debian-based and focuses on doing a few things well:
-        </p>
-        <ul>
-          <li>Filesystems like EXT4, XFS on bare metal disks.</li>
-          <li>SnapRAID + MergerFS via plugins: great for media archives.</li>
-          <li>Docker/Portainer support for optional containers.</li>
-          <li>Easy CLI access for advanced tuning and recovery.</li>
-        </ul>
-        <p>
-          For my goals—power saving, reliability, and being able to recover disks individually—OMV was the best fit.
-        </p>
-        <div class="callout">
-          <strong>Why I chose OMV:</strong> It lets me use normal Linux filesystems (EXT4 &amp; XFS) on each drive. If the NAS OS dies, I can boot any Linux live USB, mount the disks, and see my data. No proprietary pool metadata required.
+        <div class="meta">
+          <span>By <strong>Sam Symon</strong></span>
+          <span>Updated: <time datetime="2025-11-27">Nov 27, 2025</time></span>
+          <span class="tag">Home Lab</span>
+          <span class="tag">NAS</span>
+          <span class="tag">Power Saving</span>
         </div>
-      </section>
+      </header>
 
-      <section id="windows-pool">
-        <h2>3. When Windows Storage Spaces Ate My Data</h2>
-        <p>
-          Before OMV, I used Windows 10 with a software pool created using Storage Spaces. It was a striped-style setup with two pools: a general pool and a media pool.
-        </p>
-
-        <h3>The Failure</h3>
-        <p>
-          One of the HDDs in the Storage Spaces pool became damaged. I tried to recover it and used tools that showed the clone “progressing” but never really finished. While this was happening:
-        </p>
-        <ul>
-          <li>The Windows pool went into a broken state.</li>
-          <li>Storage Spaces couldn’t bring the pool online properly.</li>
-          <li>The other drives in the pool became effectively unreadable as a set.</li>
-        </ul>
-        <p>
-          Because it was striped, there was no way to just mount the healthy drives and copy partial data. We tried multiple approaches to rebuild or reattach the pool, but:
-        </p>
-        <ul>
-          <li>The pool metadata was corrupted.</li>
-          <li>The pool never became readable again.</li>
-          <li>Both the general pool and media pool were lost.</li>
-        </ul>
-        <p><strong>End result:</strong> total pool corruption and complete data loss.</p>
-
-        <h3>What Made Recovery So Hard</h3>
-        <p>
-          With Storage Spaces, the logical pool sits on top of all disks. Once pool metadata or a striped disk is badly damaged:
-        </p>
-        <ul>
-          <li>You cannot simply plug one disk into another system and read it.</li>
-          <li>Tools see the disks, but not a normal filesystem like EXT4/XFS/NTFS on each drive.</li>
-          <li>Recovery becomes a complicated forensic job instead of a straightforward mount operation.</li>
-        </ul>
-
-        <h3>How OMV Fixes This for Me</h3>
-        <p>
-          In my OMV setup:
-        </p>
-        <ul>
-          <li>The <strong>GeneralPool</strong> uses <strong>EXT4</strong> on individual data disks.</li>
-          <li>The <strong>MediaPool</strong> uses <strong>XFS</strong> on individual media disks.</li>
-          <li><strong>SnapRAID</strong> handles parity and protection.</li>
-          <li><strong>MergerFS</strong> simply presents them as a single logical directory tree.</li>
-          <li>There’s <strong>no encryption</strong> and no proprietary pool format.</li>
-        </ul>
-        <p>
-          If OMV dies or the boot SSD fails, I can:
-        </p>
+      <nav class="toc">
+        <strong>Contents</strong>
         <ol>
-          <li>Boot any Linux live USB.</li>
-          <li>Mount each disk individually (EXT4 or XFS).</li>
-          <li>See real files and copy them out.</li>
+          <li><a href="#why-nas">Why I Needed a Home NAS</a></li>
+          <li>
+            <a href="#os-choice"
+              >Choosing the NAS OS: TrueNAS vs Unraid vs OMV</a
+            >
+          </li>
+          <li>
+            <a href="#windows-pool">When Windows Storage Spaces Ate My Data</a>
+          </li>
+          <li>
+            <a href="#hardware"
+              >Hardware: Reusing a Supermicro 836 the Smart Way</a
+            >
+          </li>
+          <li><a href="#nas-photos">NAS Build Photos</a></li>
+          <li>
+            <a href="#omv-setup"
+              >OMV 7 Setup: OS, Plugins, Docker &amp; Storage Layers</a
+            >
+          </li>
+          <li><a href="#omv-screenshots">OMV Dashboard Screenshots</a></li>
+          <li>
+            <a href="#networking"
+              >Networking: Link Aggregation, SMB, and Users</a
+            >
+          </li>
+          <li><a href="#power">Power Saving, Cooling, and Stability</a></li>
+          <li><a href="#lessons">Key Lessons and Final Thoughts</a></li>
+          <li>
+            <a href="#bonus-led"
+              >Bonus: LED Bay Mapping Tool (Generic &amp; Safe)</a
+            >
+          </li>
         </ol>
-        <p>
-          That recoverability, plus lower power usage and simplicity, is exactly why I moved away from Windows pools to OMV with SnapRAID + MergerFS.
-        </p>
-      </section>
+      </nav>
 
-      <section id="hardware">
-        <h2>4. Hardware: Reusing a Supermicro 836 the Smart Way</h2>
-        <p>
-          The core of this build is a reused enterprise chassis that I tuned for home use, power efficiency, and low noise.
-        </p>
+      <main>
+        <section id="why-nas">
+          <h2>1. Why I Needed a Home NAS</h2>
+          <p>
+            For years my storage was a mix of USB drives, desktop internal
+            drives, and cloud services like Google Photos and Amazon. It worked,
+            but:
+          </p>
+          <ul>
+            <li>Backups were inconsistent.</li>
+            <li>Power usage was higher than it needed to be.</li>
+            <li>Nothing was really “centralized” for the whole family.</li>
+          </ul>
+          <p>I wanted a proper home NAS that could:</p>
+          <ul>
+            <li>Store family photos, videos, and documents reliably.</li>
+            <li>Serve Plex media smoothly.</li>
+            <li>Run 24×7 without burning electricity.</li>
+            <li>
+              Stay simple enough to recover from, even if the NAS OS dies.
+            </li>
+          </ul>
+          <p>
+            This is the journey from Windows Storage Spaces (and total data
+            loss) to a power-efficient, Linux-based NAS using OpenMediaVault
+            (OMV) with SnapRAID and MergerFS.
+          </p>
+        </section>
 
-        <div class="grid grid-2">
-          <div class="card">
-            <h3>Chassis &amp; Backplane</h3>
-            <ul>
-              <li><strong>Chassis:</strong> Supermicro 836 (reused from a Quantum DXi6500)</li>
-              <li><strong>Backplane:</strong> Supermicro BPN-SAS-836EL1 (SAS1, 3 Gbps per drive)</li>
-              <li>16 × 3.5" hot-swap bays</li>
-            </ul>
-            <p>
-              3 Gbps per drive is more than enough for Plex and home file serving, especially with spinning disks.
-            </p>
+        <section id="os-choice">
+          <h2>2. Choosing the NAS OS: TrueNAS vs Unraid vs OMV</h2>
+
+          <h3>TrueNAS: Amazing ZFS, Wrong Fit for My Hardware</h3>
+          <p>
+            I first looked at TrueNAS Core/Scale. ZFS is fantastic for data
+            integrity, snapshots, and self-healing, but it isn’t free:
+          </p>
+          <ul>
+            <li>ZFS really prefers ECC RAM and more memory (16–32 GB+).</li>
+            <li>
+              Works best with uniform drive sizes, not a mix of 500 GB, 2 TB and
+              4 TB disks.
+            </li>
+            <li>
+              Heavier on resources compared to a lightweight Debian system.
+            </li>
+          </ul>
+          <p>
+            On my reused Supermicro 16-bay chassis with mixed drives and non-ECC
+            DDR4, it felt like overkill and not optimal for power saving.
+          </p>
+
+          <h3>Unraid: Very Flexible, but Paid and Not My Final Pick</h3>
+          <p>Unraid was tempting:</p>
+          <ul>
+            <li>Mix any drive sizes in one array.</li>
+            <li>Single or dual parity for protection.</li>
+            <li>Excellent Docker support and a friendly UI.</li>
+            <li>Drives can spin down individually to save power.</li>
+          </ul>
+          <p>But there were trade-offs:</p>
+          <ul>
+            <li>License cost for large drive counts.</li>
+            <li>Write performance tied to parity and cache behavior.</li>
+            <li>Rebuild times and power usage during parity operations.</li>
+          </ul>
+          <p>
+            I liked it, but I wanted something free, scriptable, and extremely
+            lightweight, especially given my reused backplane and 3 Gbps SAS
+            limitation.
+          </p>
+
+          <h3>OpenMediaVault: Lightweight, Scriptable, and Power-Friendly</h3>
+          <p>
+            OpenMediaVault 7 (OMV) is Debian-based and focuses on doing a few
+            things well:
+          </p>
+          <ul>
+            <li>Filesystems like EXT4, XFS on bare metal disks.</li>
+            <li>SnapRAID + MergerFS via plugins: great for media archives.</li>
+            <li>Docker/Portainer support for optional containers.</li>
+            <li>Easy CLI access for advanced tuning and recovery.</li>
+          </ul>
+          <p>
+            For my goals—power saving, reliability, and being able to recover
+            disks individually—OMV was the best fit.
+          </p>
+          <div class="callout">
+            <strong>Why I chose OMV:</strong> It lets me use normal Linux
+            filesystems (EXT4 &amp; XFS) on each drive. If the NAS OS dies, I
+            can boot any Linux live USB, mount the disks, and see my data. No
+            proprietary pool metadata required.
+          </div>
+        </section>
+
+        <section id="windows-pool">
+          <h2>3. When Windows Storage Spaces Ate My Data</h2>
+          <p>
+            Before OMV, I used Windows 10 with a software pool created using
+            Storage Spaces. It was a striped-style setup with two pools: a
+            general pool and a media pool.
+          </p>
+
+          <h3>The Failure</h3>
+          <p>
+            One of the HDDs in the Storage Spaces pool became damaged. I tried
+            to recover it and used tools that showed the clone “progressing” but
+            never really finished. While this was happening:
+          </p>
+          <ul>
+            <li>The Windows pool went into a broken state.</li>
+            <li>Storage Spaces couldn’t bring the pool online properly.</li>
+            <li>
+              The other drives in the pool became effectively unreadable as a
+              set.
+            </li>
+          </ul>
+          <p>
+            Because it was striped, there was no way to just mount the healthy
+            drives and copy partial data. I tried multiple approaches to rebuild
+            or reattach the pool, but:
+          </p>
+          <ul>
+            <li>The pool metadata was corrupted.</li>
+            <li>The pool never became readable again.</li>
+            <li>Both the general pool and media pool were lost.</li>
+          </ul>
+          <p>
+            <strong>End result:</strong> total pool corruption and complete data
+            loss.
+          </p>
+
+          <h3>What Made Recovery So Hard</h3>
+          <p>
+            With Storage Spaces, the logical pool sits on top of all disks. Once
+            pool metadata or a striped disk is badly damaged:
+          </p>
+          <ul>
+            <li>
+              You cannot simply plug one disk into another system and read it.
+            </li>
+            <li>
+              Tools see the disks, but not a normal filesystem like
+              EXT4/XFS/NTFS on each drive.
+            </li>
+            <li>
+              Recovery becomes a complicated forensic job instead of a
+              straightforward mount operation.
+            </li>
+          </ul>
+
+          <h3>How OMV Fixes This for Me</h3>
+          <p>In my OMV setup:</p>
+          <ul>
+            <li>
+              The <strong>GeneralPool</strong> uses <strong>EXT4</strong> on
+              individual data disks.
+            </li>
+            <li>
+              The <strong>MediaPool</strong> uses <strong>XFS</strong> on
+              individual media disks.
+            </li>
+            <li><strong>SnapRAID</strong> handles parity and protection.</li>
+            <li>
+              <strong>MergerFS</strong> simply presents them as a single logical
+              directory tree.
+            </li>
+            <li>
+              There’s <strong>no encryption</strong> and no proprietary pool
+              format.
+            </li>
+          </ul>
+          <p>If OMV dies or the boot SSD fails, I can:</p>
+          <ol>
+            <li>Boot any Linux live USB.</li>
+            <li>Mount each disk individually (EXT4 or XFS).</li>
+            <li>See real files and copy them out.</li>
+          </ol>
+          <p>
+            That recoverability, plus lower power usage and simplicity, is
+            exactly why I moved away from Windows pools to OMV with SnapRAID +
+            MergerFS.
+          </p>
+        </section>
+
+        <section id="hardware">
+          <h2>4. Hardware: Reusing a Supermicro 836 the Smart Way</h2>
+          <p>
+            The core of this build is a reused enterprise chassis that I tuned
+            for home use, power efficiency, and low noise.
+          </p>
+
+          <div class="grid grid-2">
+            <div class="card">
+              <h3>Chassis &amp; Backplane</h3>
+              <ul>
+                <li>
+                  <strong>Chassis:</strong> Supermicro 836 (reused from a
+                  Quantum DXi6500)
+                </li>
+                <li>
+                  <strong>Backplane:</strong> Supermicro BPN-SAS-836EL1 (SAS1, 3
+                  Gbps per drive)
+                </li>
+                <li>16 × 3.5" hot-swap bays</li>
+              </ul>
+              <p>
+                3 Gbps per drive is more than enough for Plex and home file
+                serving, especially with spinning disks.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3>Motherboard, CPU &amp; RAM</h3>
+              <ul>
+                <li><strong>Motherboard:</strong> Gigabyte Z370P D3 (DDR4)</li>
+                <li>
+                  <strong>CPU:</strong> Intel Core i5-8400 (6-core,
+                  power-efficient)
+                </li>
+                <li><strong>RAM:</strong> 16 GB DDR4 (non-ECC)</li>
+              </ul>
+              <p>
+                Non-ECC is acceptable for SnapRAID/EXT4/XFS, and the i5 keeps
+                power usage low compared to dual Xeons.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3>Storage &amp; HBA</h3>
+              <ul>
+                <li>
+                  Data disks: mixed 4 TB, 2 TB and 500 GB HDDs (15 drives total
+                  across two pools)
+                </li>
+                <li><strong>OS SSD:</strong> 2 × 240GB SSDs (mdadm mirror)</li>
+                <li>
+                  <strong>Docker SSD:</strong> 500GB Samsung 850 EVO for Docker
+                  / appdata
+                </li>
+                <li>
+                  <strong>Logs & Backup SSD:</strong> 500GB SSD dedicated for
+                  OMV backup & logs
+                </li>
+                <li>
+                  <strong>NVMe Cache:</strong> 256GB Toshiba NVMe for caching /
+                  bcache tests
+                </li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <h3>Power &amp; Cooling</h3>
+              <ul>
+                <li>
+                  <strong>PSU:</strong> Supermicro PWS-920P-SQ (quiet &amp;
+                  efficient)
+                </li>
+                <li>Cooling: upgraded low-RPM Thermalright fans</li>
+                <li>
+                  Target: quiet enough for a home environment, with good airflow
+                  over HBA &amp; drives
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <div class="card">
-            <h3>Motherboard, CPU &amp; RAM</h3>
-            <ul>
-              <li><strong>Motherboard:</strong> Gigabyte Z370P D3 (DDR4)</li>
-              <li><strong>CPU:</strong> Intel Core i5-8400 (6-core, power-efficient)</li>
-              <li><strong>RAM:</strong> 16 GB DDR4 (non-ECC)</li>
-            </ul>
-            <p>
-              Non-ECC is acceptable for SnapRAID/EXT4/XFS, and the i5 keeps power usage low compared to dual Xeons.
-            </p>
+          <p>
+            Fully populated with 16 drives, the system sits around ~140–150 W in
+            real-world use, which is acceptable for a 16-bay chassis that runs
+            24×7.
+          </p>
+        </section>
+
+        <section id="nas-photos">
+          <h2>5. NAS Build Photos</h2>
+          <p>
+            Some photos of the actual hardware build inside the Supermicro 836
+            chassis.
+          </p>
+
+          <!-- Hardware gallery: img1, img2, img3, img7 -->
+          <a href="/images/img1.jpg" data-lightbox="hardware">
+            <img
+              src="/images/img1.jpg"
+              alt="NAS internal hardware photo 1"
+              class="photo"
+            />
+          </a>
+          <a href="/images/img2.jpg" data-lightbox="hardware">
+            <img
+              src="/images/img2.jpg"
+              alt="NAS internal hardware photo 2"
+              class="photo"
+            />
+          </a>
+          <a href="/images/img3.jpg" data-lightbox="hardware">
+            <img
+              src="/images/img3.jpg"
+              alt="NAS internal hardware photo 3"
+              class="photo"
+            />
+          </a>
+          <a href="/images/img7.jpg" data-lightbox="hardware">
+            <img
+              src="/images/img7.jpg"
+              alt="NAS internal hardware photo 3"
+              class="photo"
+            />
+          </a>
+        </section>
+
+        <section id="omv-setup">
+          <h2>6. OMV 7 Setup: OS, Plugins, Docker &amp; Storage Layers</h2>
+
+          <h3>6.1 OS SSD Failure, UUID Changes and Restore Challenges</h3>
+          <p>
+            At one point my original boot SSD started to fail. I thought
+            restoring from backups would be straightforward, but OMV 7 had other
+            ideas:
+          </p>
+          <ul>
+            <li>Fresh install changed all the filesystem UUIDs.</li>
+            <li>Old configs referenced disks by old paths/UUIDs.</li>
+            <li>
+              Some older CLI tricks from forum posts no longer worked in OMV 7.
+            </li>
+          </ul>
+          <p>I quickly learned that:</p>
+          <ul>
+            <li>
+              Trying to “force” a full restore onto a new install can cause more
+              confusion.
+            </li>
+            <li>
+              It’s better to reinstall OMV clean and then reattach disks via the
+              GUI, letting it detect the new UUIDs.
+            </li>
+            <li>
+              Once disks are mounted correctly, I can then rebuild MergerFS and
+              SnapRAID configurations around the existing data.
+            </li>
+          </ul>
+          <div class="callout">
+            <strong>Rule I follow now:</strong> the OS is disposable. As long as
+            the data disks are healthy and use plain EXT4/XFS, I can reinstall
+            OMV, reimport disks, and recreate configs without touching the
+            actual data.
           </div>
 
-          <div class="card">
-            <h3>Storage &amp; HBA</h3>
-            <ul>
-              <li>Data disks: mixed 4 TB, 2 TB and 500 GB HDDs (15 drives total across two pools)</li>
-              <li><strong>OS SSD:</strong> 2 × 240GB SSDs (mdadm mirror)</li>
-              <li><strong>Docker SSD:</strong> 500GB Samsung 850 EVO for Docker / appdata</li>
-              <li><strong>Logs & Backup SSD:</strong> 500GB SSD dedicated for OMV backup & logs</li>
-              <li><strong>NVMe Cache:</strong> 256GB Toshiba NVMe for caching / bcache tests</li>
+          <h3>6.2 OMV-Extras and Plugins in OMV 7</h3>
+          <p>
+            OMV-Extras is where most of the “good stuff” lives: SnapRAID,
+            MergerFS, Docker, and a lot of optional plugins. The problem is that
+            many old how-to posts quote an install one-liner that simply doesn’t
+            work anymore on OMV 7.
+          </p>
+          <p>On OMV 7:</p>
+          <ul>
+            <li>The old installer scripts for OMV-Extras are outdated.</li>
+            <li>
+              The correct way is to use the current OMV-Extras package for the
+              OMV version and install it using the Debian package method (or via
+              the official instructions for OMV 7).
+            </li>
+            <li>
+              Once installed, almost everything can be done from the OMV web UI:
+              enabling Extras, installing SnapRAID/MergerFS, enabling Docker,
+              etc.
+            </li>
+          </ul>
+          <p>
+            After I got OMV-Extras working properly, I avoided using old CLI
+            snippets and instead let the plugins generate configs wherever
+            possible. This keeps everything aligned with the current OMV
+            version, especially after upgrades.
+          </p>
 
-            </ul>
-          </div>
+          <h3>6.3 Docker &amp; Portainer on a Dedicated SSD</h3>
+          <p>
+            I didn’t want Docker containers and appdata cluttering the OS drive
+            or competing with media disks, so I dedicated a separate SSD for
+            them.
+          </p>
+          <p>The layout is roughly:</p>
+          <ul>
+            <li>OS: 240 GB SSD mirror.</li>
+            <li>Docker + Portainer + appdata: separate SSD.</li>
+            <li>Media and data: spinning HDDs in SnapRAID/MergerFS pools.</li>
+          </ul>
+          <p>Using OMV-Extras:</p>
+          <ul>
+            <li>I enabled the Docker plugin.</li>
+            <li>Pointed the Docker root directory to the dedicated SSD.</li>
+            <li>Installed Portainer for a nicer UI to manage containers.</li>
+          </ul>
+          <p>
+            This keeps the OS lean while letting me experiment with containers
+            without risking my main data or filling the system disk.
+          </p>
 
-          <div class="card">
-            <h3>Power &amp; Cooling</h3>
-            <ul>
-              <li><strong>PSU:</strong> Supermicro PWS-920P-SQ (quiet &amp; efficient)</li>
-              <li>Cooling: upgraded low-RPM Thermalright fans</li>
-              <li>Target: quiet enough for a home environment, with good airflow over HBA &amp; drives</li>
-            </ul>
-          </div>
-        </div>
+          <h3>6.4 Storage Layers: MergerFS, SnapRAID and bcache</h3>
+          <p>The storage stack is where OMV really shines for my use case.</p>
 
-        <p>
-          Fully populated with 16 drives, the system sits around ~140–150 W in real-world use, which is acceptable for a 16-bay chassis that runs 24×7.
-        </p>
-      </section>
+          <h4>MergerFS: One Big Pool from Many Disks</h4>
+          <p>Each disk is formatted individually:</p>
+          <ul>
+            <li>Data disks for the general pool → EXT4.</li>
+            <li>Media disks for Plex → XFS.</li>
+          </ul>
+          <p>
+            MergerFS sits on top and presents them as a single logical
+            filesystem:
+          </p>
+          <ul>
+            <li><strong>GeneralPool</strong> → multiple EXT4 disks merged.</li>
+            <li><strong>MediaPool</strong> → multiple XFS disks merged.</li>
+          </ul>
+          <p>Adding a disk becomes simple:</p>
+          <ol>
+            <li>Partition &amp; format it as EXT4/XFS.</li>
+            <li>Mount it in OMV.</li>
+            <li>Add it to the relevant MergerFS pool in the GUI.</li>
+          </ol>
+          <p>
+            No RAID rebuild, no massive pool conversion—just more space added to
+            the pool.
+          </p>
 
-      <section id="nas-photos">
-        <h2>5. NAS Build Photos</h2>
-        <p>Some photos of the actual hardware build inside the Supermicro 836 chassis.</p>
+          <h4>SnapRAID: Parity on a Schedule, Not in Real Time</h4>
+          <p>
+            SnapRAID handles parity and protection but is very different from a
+            live RAID:
+          </p>
+          <ul>
+            <li>
+              It’s snapshot-style parity: it protects whatever data existed at
+              the last sync.
+            </li>
+            <li>
+              Parity is updated when you run <code>snapraid sync</code> or
+              <code>snapraid diff</code>, not for every write.
+            </li>
+            <li>
+              If a data disk fails after a recent sync, SnapRAID can rebuild it.
+            </li>
+          </ul>
+          <p>
+            The OMV SnapRAID plugin generates configs like
+            <code>/etc/snapraid/omv-snapraid-*.conf</code>. It has a “backup”
+            function in the sense that it keeps these config fragments, but
+            there is no “one click restore” — the plugin always regenerates from
+            the UI definitions.
+          </p>
+          <p>I leaned into that design:</p>
+          <ul>
+            <li>All SnapRAID disk assignments are done from the OMV UI.</li>
+            <li>
+              A daily <code>diff</code> job checks changes and keeps parity
+              updated.
+            </li>
+            <li>Weekly scrubs make sure silent errors are caught.</li>
+          </ul>
 
-        <!-- Hardware gallery: img1, img2, img3 -->
-        <a href="/images/img1.jpg" data-lightbox="hardware">
-          <img src="/images/img1.jpg" alt="NAS internal hardware photo 1" class="photo">
-        </a>
-        <a href="/images/img2.jpg" data-lightbox="hardware">
-          <img src="/images/img2.jpg" alt="NAS internal hardware photo 2" class="photo">
-        </a>
-        <a href="/images/img3.jpg" data-lightbox="hardware">
-          <img src="/images/img3.jpg" alt="NAS internal hardware photo 3" class="photo">
-        </a>
-      </section>
+          <h4>bcache: Experimenting with SSD Caching</h4>
+          <p>
+            I also experimented with <strong>bcache</strong>, pairing faster
+            SSD/NVMe with slower HDDs:
+          </p>
+          <ul>
+            <li>HDD becomes the “backing device.”</li>
+            <li>SSD/NVMe becomes the “cache device.”</li>
+            <li>The resulting bcache device is what the filesystem sits on.</li>
+          </ul>
+          <p>
+            For some workloads (metadata-heavy or frequently accessed data),
+            this can noticeably improve responsiveness without putting
+            everything directly on SSD. It’s not mandatory, but OMV being Debian
+            underneath lets me do these experiments without fighting the system.
+          </p>
 
-      <section id="omv-setup">
-        <h2>6. OMV 7 Setup: OS, Plugins, Docker &amp; Storage Layers</h2>
+          <h3>6.5 Automation with the OMV Scheduler</h3>
+          <p>
+            One of the big differences from systems with always-on parity is
+            that SnapRAID and a lot of health checks need to happen on a
+            <strong>schedule</strong>, not in real time. Instead of manually
+            remembering all of it, I use the OMV scheduler to run scripts.
+          </p>
+          <p>Some of the most useful jobs I’ve set up:</p>
+          <ul>
+            <li>
+              <strong>Daily SnapRAID diff:</strong><br />
+              <code
+                >for conf in /etc/snapraid/omv-snapraid-*.conf; do
+                /usr/sbin/omv-snapraid-diff ${conf}; done</code
+              ><br />
+              Keeps parity closely in sync with changes.
+            </li>
 
-        <h3>6.1 OS SSD Failure, UUID Changes and Restore Challenges</h3>
-        <p>
-          At one point my original boot SSD started to fail. I thought restoring from backups would be straightforward, but OMV 7 had other ideas:
-        </p>
-        <ul>
-          <li>Fresh install changed all the filesystem UUIDs.</li>
-          <li>Old configs referenced disks by old paths/UUIDs.</li>
-          <li>Some older CLI tricks from forum posts no longer worked in OMV 7.</li>
-        </ul>
-        <p>
-          I quickly learned that:
-        </p>
-        <ul>
-          <li>Trying to “force” a full restore onto a new install can cause more confusion.</li>
-          <li>It’s better to reinstall OMV clean and then reattach disks via the GUI, letting it detect the new UUIDs.</li>
-          <li>Once disks are mounted correctly, I can then rebuild MergerFS and SnapRAID configurations around the existing data.</li>
-        </ul>
-        <div class="callout">
-          <strong>Rule I follow now:</strong> the OS is disposable. As long as the data disks are healthy and use plain EXT4/XFS, I can reinstall OMV, reimport disks, and recreate configs without touching the actual data.
-        </div>
+            <li>
+              <strong>Weekly SnapRAID scrub:</strong><br />
+              <code>/usr/local/bin/snapraid-scrub.sh</code><br />
+              Checks for silent corruption on data and parity disks.
+            </li>
 
-        <h3>6.2 OMV-Extras and Plugins in OMV 7</h3>
-        <p>
-          OMV-Extras is where most of the “good stuff” lives: SnapRAID, MergerFS, Docker, and a lot of optional plugins. The problem is that many old how-to posts quote an install one-liner that simply doesn’t work anymore on OMV 7.
-        </p>
-        <p>
-          On OMV 7:
-        </p>
-        <ul>
-          <li>The old installer scripts for OMV-Extras are outdated.</li>
-          <li>The correct way is to use the current OMV-Extras package for the OMV version and install it using the Debian package method (or via the official instructions for OMV 7).</li>
-          <li>Once installed, almost everything can be done from the OMV web UI: enabling Extras, installing SnapRAID/MergerFS, enabling Docker, etc.</li>
-        </ul>
-        <p>
-          After I got OMV-Extras working properly, I avoided using old CLI snippets and instead let the plugins generate configs wherever possible. This keeps everything aligned with the current OMV version, especially after upgrades.
-        </p>
+            <li>
+              <strong>SMART health tests:</strong><br />
+              <em>Weekly short tests:</em><br />
+              <code>for d in /dev/sd?; do smartctl -t short $d; done</code
+              ><br />
+              <em>Monthly long tests:</em><br />
+              <code>for d in /dev/sd?; do smartctl -t long $d; done</code><br />
+              This gives early warnings for failing drives.
+            </li>
 
-        <h3>6.3 Docker &amp; Portainer on a Dedicated SSD</h3>
-        <p>
-          I didn’t want Docker containers and appdata cluttering the OS drive or competing with media disks, so I dedicated a separate SSD for them.
-        </p>
-        <p>
-          The layout is roughly:
-        </p>
-        <ul>
-          <li>OS: 240 GB SSD mirror.</li>
-          <li>Docker + Portainer + appdata: separate SSD.</li>
-          <li>Media and data: spinning HDDs in SnapRAID/MergerFS pools.</li>
-        </ul>
-        <p>
-          Using OMV-Extras:
-        </p>
-        <ul>
-          <li>I enabled the Docker plugin.</li>
-          <li>Pointed the Docker root directory to the dedicated SSD.</li>
-          <li>Installed Portainer for a nicer UI to manage containers.</li>
-        </ul>
-        <p>
-          This keeps the OS lean while letting me experiment with containers without risking my main data or filling the system disk.
-        </p>
+            <li>
+              <strong>OMV configuration backups:</strong><br />
+              <code>/usr/sbin/omv-backup</code><br />
+              Creates regular system config backups so I can recover from OS
+              issues faster.
+            </li>
 
-        <h3>6.4 Storage Layers: MergerFS, SnapRAID and bcache</h3>
-        <p>
-          The storage stack is where OMV really shines for my use case.
-        </p>
+            <li>
+              <strong>Snapshot-style data backup with SnapRAID:</strong><br />
+              <code>/usr/local/bin/backup_with_snapraid.sh</code><br />
+              Handles backing up critical data to a dedicated backup SSD.
+            </li>
 
-        <h4>MergerFS: One Big Pool from Many Disks</h4>
-        <p>
-          Each disk is formatted individually:
-        </p>
-        <ul>
-          <li>Data disks for the general pool → EXT4.</li>
-          <li>Media disks for Plex → XFS.</li>
-        </ul>
-        <p>
-          MergerFS sits on top and presents them as a single logical filesystem:
-        </p>
-        <ul>
-          <li><strong>GeneralPool</strong> → multiple EXT4 disks merged.</li>
-          <li><strong>MediaPool</strong> → multiple XFS disks merged.</li>
-        </ul>
-        <p>
-          Adding a disk becomes simple:
-        </p>
-        <ol>
-          <li>Partition &amp; format it as EXT4/XFS.</li>
-          <li>Mount it in OMV.</li>
-          <li>Add it to the relevant MergerFS pool in the GUI.</li>
-        </ol>
-        <p>
-          No RAID rebuild, no massive pool conversion—just more space added to the pool.
-        </p>
+            <li>
+              <strong>Portainer &amp; Docker stack backup:</strong><br />
+              <code>/usr/local/bin/portainer_compose_backup.sh</code><br />
+              Keeps my container definitions and Portainer data safe.
+            </li>
 
-        <h4>SnapRAID: Parity on a Schedule, Not in Real Time</h4>
-        <p>
-          SnapRAID handles parity and protection but is very different from a live RAID:
-        </p>
-        <ul>
-          <li>It’s snapshot-style parity: it protects whatever data existed at the last sync.</li>
-          <li>Parity is updated when you run <code>snapraid sync</code> or <code>snapraid diff</code>, not for every write.</li>
-          <li>If a data disk fails after a recent sync, SnapRAID can rebuild it.</li>
-        </ul>
-        <p>
-          The OMV SnapRAID plugin generates configs like <code>/etc/snapraid/omv-snapraid-*.conf</code>. It has a “backup” function in the sense that it keeps these config fragments, but there is no “one click restore” — the plugin always regenerates from the UI definitions.
-        </p>
-        <p>
-          I leaned into that design:
-        </p>
-        <ul>
-          <li>All SnapRAID disk assignments are done from the OMV UI.</li>
-          <li>A daily <code>diff</code> job checks changes and keeps parity updated.</li>
-          <li>Weekly scrubs make sure silent errors are caught.</li>
-        </ul>
+            <li>
+              <strong>Network &amp; health checks:</strong><br />
+              <code>/usr/local/sbin/network_check.sh</code> and
+              <code>/usr/local/bin/nas-health.sh</code><br />
+              Verify that the NAS is online, services are healthy, and log
+              summaries are written to a central log.
+            </li>
+          </ul>
+          <p>
+            Instead of relying on “magic” from a black-box NAS, I see exactly
+            what runs and when. Everything is just cron jobs and shell scripts
+            that I can read and adjust.
+          </p>
+        </section>
 
-        <h4>bcache: Experimenting with SSD Caching</h4>
-        <p>
-          I also experimented with <strong>bcache</strong>, pairing faster SSD/NVMe with slower HDDs:
-        </p>
-        <ul>
-          <li>HDD becomes the “backing device.”</li>
-          <li>SSD/NVMe becomes the “cache device.”</li>
-          <li>The resulting bcache device is what the filesystem sits on.</li>
-        </ul>
-        <p>
-          For some workloads (metadata-heavy or frequently accessed data), this can noticeably improve responsiveness without putting everything directly on SSD. It’s not mandatory, but OMV being Debian underneath lets me do these experiments without fighting the system.
-        </p>
+        <section id="omv-screenshots">
+          <h2>7. OMV Dashboard Screenshots</h2>
+          <p>
+            Some screenshots of the OpenMediaVault dashboard, disk temperatures,
+            storage, and services.
+          </p>
 
-        <h3>6.5 Automation with the OMV Scheduler</h3>
-        <p>
-          One of the big differences from systems with always-on parity is that SnapRAID and a lot of health checks need to happen on a <strong>schedule</strong>, not in real time. Instead of manually remembering all of it, I use the OMV scheduler to run scripts.
-        </p>
-        <p>
-          Some of the most useful jobs I’ve set up:
-        </p>
-        <ul>
-          <li><strong>Daily SnapRAID diff:</strong><br>
-            <code>for conf in /etc/snapraid/omv-snapraid-*.conf; do /usr/sbin/omv-snapraid-diff ${conf}; done</code><br>
-            Keeps parity closely in sync with changes.</li>
+          <!-- OMV UI gallery: img4, img5, img6 -->
+          <a href="/images/img4.jpg" data-lightbox="omv">
+            <img
+              src="/images/img4.jpg"
+              alt="OMV dashboard screenshot 1"
+              class="photo"
+            />
+          </a>
+          <a href="/images/img5.jpg" data-lightbox="omv">
+            <img
+              src="/images/img5.jpg"
+              alt="OMV dashboard screenshot 2"
+              class="photo"
+            />
+          </a>
+          <a href="/images/img6.jpg" data-lightbox="omv">
+            <img
+              src="/images/img6.jpg"
+              alt="OMV storage screenshot"
+              class="photo"
+            />
+          </a>
+        </section>
 
-          <li><strong>Weekly SnapRAID scrub:</strong><br>
-            <code>/usr/local/bin/snapraid-scrub.sh</code><br>
-            Checks for silent corruption on data and parity disks.</li>
+        <section id="networking">
+          <h2>8. Networking: Link Aggregation, SMB, and User Management</h2>
 
-          <li><strong>SMART health tests:</strong><br>
-            <em>Weekly short tests:</em><br>
-            <code>for d in /dev/sd?; do smartctl -t short $d; done</code><br>
-            <em>Monthly long tests:</em><br>
-            <code>for d in /dev/sd?; do smartctl -t long $d; done</code><br>
-            This gives early warnings for failing drives.</li>
+          <h3>Bonding / Link Aggregation (LACP)</h3>
+          <p>
+            The NAS has dual Intel NICs connected to an Omada SG2016P switch.
+            The goal is to:
+          </p>
+          <ul>
+            <li>Use 802.3ad (LACP) bonding on the NAS.</li>
+            <li>Use a matching LAG group on the switch.</li>
+            <li>Allow multiple clients to share more than 1 Gbps in total.</li>
+          </ul>
+          <p>In practice:</p>
+          <ul>
+            <li>
+              OMV was initially configured for 802.3ad, but the bond stayed in
+              active-backup mode.
+            </li>
+            <li>The switch side LAG was set but in passive mode.</li>
+          </ul>
+          <p>Tuning steps include:</p>
+          <ol>
+            <li>Ensure OMV bond0 is set to <strong>LACP active</strong>.</li>
+            <li>Set the Omada LAG to <strong>802.3ad dynamic</strong>.</li>
+            <li>Use a consistent hash policy (e.g. L2+L3).</li>
+            <li>Verify with <code>cat /proc/net/bonding/bond0</code>.</li>
+          </ol>
 
-          <li><strong>OMV configuration backups:</strong><br>
-            <code>/usr/sbin/omv-backup</code><br>
-            Creates regular system config backups so I can recover from OS issues faster.</li>
+          <h3>SMB Setup and Tuning</h3>
+          <p>For SMB:</p>
+          <ul>
+            <li>AIO and sendfile are enabled for better throughput.</li>
+            <li>Recycle bin behaviour is controlled per share.</li>
+            <li>Permissions are handled through Unix ACLs and groups.</li>
+          </ul>
+          <p>
+            I use a main share for Plex media and a separate general data share.
+            Windows maps them via <code>\\nas-ip\Plex_Media</code> and
+            <code>\\nas-ip\GeneralPool</code>.
+          </p>
 
-          <li><strong>Snapshot-style data backup with SnapRAID:</strong><br>
-            <code>/usr/local/bin/backup_with_snapraid.sh</code><br>
-            Handles backing up critical data to a dedicated backup SSD.</li>
+          <h3>Symlink to Common Shared Folder</h3>
+          <p>
+            For convenience, I created a “CommonShare” folder inside the main
+            pool and then a symlink so each user can reach it easily:
+          </p>
+          <pre><code>ln -s /srv/mergerfs/GeneralPool/CommonShare /srv/mergerfs/GeneralPool/Sam/CommonShare</code></pre>
+          <p>
+            This gives a shared family space while still allowing private user
+            folders.
+          </p>
 
-          <li><strong>Portainer &amp; Docker stack backup:</strong><br>
-            <code>/usr/local/bin/portainer_compose_backup.sh</code><br>
-            Keeps my container definitions and Portainer data safe.</li>
+          <h3>User Management</h3>
+          <p>Users are simple:</p>
+          <ul>
+            <li>Each family member has an account (e.g. Sam, Rahul, Kiran).</li>
+            <li>Everyone is in a common group such as <code>users</code>.</li>
+            <li>
+              Personal folders are restricted, CommonShare is group-writable.
+            </li>
+          </ul>
+          <p>This keeps shares understandable and avoids complex ACL hell.</p>
+        </section>
 
-          <li><strong>Network &amp; health checks:</strong><br>
-            <code>/usr/local/sbin/network_check.sh</code> and <code>/usr/local/bin/nas-health.sh</code><br>
-            Verify that the NAS is online, services are healthy, and log summaries are written to a central log.</li>
-        </ul>
-        <p>
-          Instead of relying on “magic” from a black-box NAS, I see exactly what runs and when. Everything is just cron jobs and shell scripts that I can read and adjust.
-        </p>
-      </section>
+        <section id="power">
+          <h2>9. Power Saving, Cooling, and Stability</h2>
+          <p>Because this NAS runs 24×7, power and noise matter a lot.</p>
+          <ul>
+            <li>
+              Low-RPM fans keep airflow healthy without sounding like a server
+              room.
+            </li>
+            <li>
+              The i5-8400 consumes far less power than the original dual Xeons
+              (~400-500 W) from the DXi6500.
+            </li>
+            <li>
+              The PWS-920P-SQ PSU is designed for quiet, efficient operation.
+            </li>
+          </ul>
+          <p>SnapRAID helps here as well:</p>
+          <ul>
+            <li>
+              Parity syncs are scheduled, not constant like a RAID5 write
+              penalty.
+            </li>
+            <li>
+              Data disks can stay mostly idle outside of read/write periods and
+              SnapRAID runs.
+            </li>
+          </ul>
+          <p>The result is a system that:</p>
+          <ul>
+            <li>Is powerful enough for my home lab needs.</li>
+            <li>Is quiet enough to coexist in a home environment.</li>
+            <li>Uses reasonable power for a fully-populated 16-bay chassis.</li>
+          </ul>
+        </section>
 
-      <section id="omv-screenshots">
-        <h2>7. OMV Dashboard Screenshots</h2>
-        <p>Some screenshots of the OpenMediaVault dashboard, disk temperatures, storage, and services.</p>
+        <section id="lessons">
+          <h2>10. Key Lessons and Final Thoughts</h2>
+          <p>A few big takeaways from this whole process:</p>
+          <ul>
+            <li>
+              <strong
+                >Don’t underestimate the risk of proprietary pools.</strong
+              >
+              My Windows Storage Spaces pool failure was total: once the pool
+              metadata and a striped disk were corrupted, the data was
+              effectively gone.
+            </li>
+            <li>
+              <strong
+                >Plain filesystems on individual disks are your friend.</strong
+              >
+              With OMV + SnapRAID + MergerFS, each disk is still just EXT4 or
+              XFS, readable on any Linux system.
+            </li>
+            <li>
+              <strong>Separate OS from data.</strong> Treat the NAS OS as
+              disposable. Reinstalling OMV should never risk actual data
+              volumes.
+            </li>
+            <li>
+              <strong>Let the scheduler do the boring work.</strong> SnapRAID
+              syncs, scrubs, SMART tests, backups, and Portainer exports happen
+              on a schedule, not when I remember.
+            </li>
+            <li>
+              <strong>Power efficiency matters long-term.</strong> Swapping out
+              power-hungry CPUs and high-RPM fans adds up in noise reduction and
+              electricity savings.
+            </li>
+          </ul>
+          <p>
+            For my mix of reused hardware, family storage needs, and a focus on
+            power saving and stability,
+            <strong>OpenMediaVault with SnapRAID and MergerFS</strong> turned
+            out to be the ideal solution.
+          </p>
+          <p>
+            If you’re building a home NAS and you care about being able to
+            actually recover your data when things go wrong, it’s worth
+            seriously considering this approach.
+          </p>
+        </section>
 
-        <!-- OMV UI gallery: img4, img5, img6 -->
-        <a href="/images/img4.jpg" data-lightbox="omv">
-          <img src="/images/img4.jpg" alt="OMV dashboard screenshot 1" class="photo">
-        </a>
-        <a href="/images/img5.jpg" data-lightbox="omv">
-          <img src="/images/img5.jpg" alt="OMV dashboard screenshot 2" class="photo">
-        </a>
-        <a href="/images/img6.jpg" data-lightbox="omv">
-          <img src="/images/img6.jpg" alt="OMV storage screenshot" class="photo">
-        </a>
-      </section>
+        <section id="bonus-led">
+          <h2>11. Bonus: LED Bay Mapping Tool (Generic &amp; Safe)</h2>
+          <p>
+            One extra tool that has been surprisingly useful is a simple script
+            to map physical bays to Linux device names (like
+            <code>/dev/sda</code>, <code>/dev/sdb</code>, etc.) using the
+            backplane LEDs.
+          </p>
+          <p>
+            It works with LSI/Supermicro setups where <code>ledctl</code> can
+            control the front-panel LEDs. The idea is:
+          </p>
+          <ul>
+            <li>Blink one disk at a time.</li>
+            <li>
+              You look at the front of the NAS and type which bay is blinking.
+            </li>
+            <li>The script saves a map of bay → device.</li>
+            <li>
+              Optionally, it generates persistent
+              <code>/dev/bayNN</code> symlinks via udev.
+            </li>
+          </ul>
 
-      <section id="networking">
-        <h2>8. Networking: Link Aggregation, SMB, and User Management</h2>
-
-        <h3>Bonding / Link Aggregation (LACP)</h3>
-        <p>
-          The NAS has dual Intel NICs connected to an Omada SG2016P switch. The goal is to:
-        </p>
-        <ul>
-          <li>Use 802.3ad (LACP) bonding on the NAS.</li>
-          <li>Use a matching LAG group on the switch.</li>
-          <li>Allow multiple clients to share more than 1 Gbps in total.</li>
-        </ul>
-        <p>
-          In practice:
-        </p>
-        <ul>
-          <li>OMV was initially configured for 802.3ad, but the bond stayed in active-backup mode.</li>
-          <li>The switch side LAG was set but in passive mode.</li>
-        </ul>
-        <p>
-          Tuning steps include:
-        </p>
-        <ol>
-          <li>Ensure OMV bond0 is set to <strong>LACP active</strong>.</li>
-          <li>Set the Omada LAG to <strong>802.3ad dynamic</strong>.</li>
-          <li>Use a consistent hash policy (e.g. L2+L3).</li>
-          <li>Verify with <code>cat /proc/net/bonding/bond0</code>.</li>
-        </ol>
-
-        <h3>SMB Setup and Tuning</h3>
-        <p>
-          For SMB:
-        </p>
-        <ul>
-          <li>AIO and sendfile are enabled for better throughput.</li>
-          <li>Recycle bin behaviour is controlled per share.</li>
-          <li>Permissions are handled through Unix ACLs and groups.</li>
-        </ul>
-        <p>
-          I use a main share for Plex media and a separate general data share. Windows maps them via <code>\\nas-ip\Plex_Media</code> and <code>\\nas-ip\GeneralPool</code>.
-        </p>
-
-        <h3>Symlink to Common Shared Folder</h3>
-        <p>
-          For convenience, I created a “CommonShare” folder inside the main pool and then a symlink so each user can reach it easily:
-        </p>
-        <pre><code>ln -s /srv/mergerfs/GeneralPool/CommonShare /srv/mergerfs/GeneralPool/Sam/CommonShare</code></pre>
-        <p>
-          This gives a shared family space while still allowing private user folders.
-        </p>
-
-        <h3>User Management</h3>
-        <p>
-          Users are simple:
-        </p>
-        <ul>
-          <li>Each family member has an account (e.g. Sam, Ethan, Ria).</li>
-          <li>Everyone is in a common group such as <code>users</code>.</li>
-          <li>Personal folders are restricted, CommonShare is group-writable.</li>
-        </ul>
-        <p>
-          This keeps shares understandable and avoids complex ACL hell.
-        </p>
-      </section>
-
-      <section id="power">
-        <h2>9. Power Saving, Cooling, and Stability</h2>
-        <p>
-          Because this NAS runs 24×7, power and noise matter a lot.
-        </p>
-        <ul>
-          <li>Low-RPM fans keep airflow healthy without sounding like a server room.</li>
-          <li>The i5-8400 consumes far less power than the original Xeons from the DXi6500.</li>
-          <li>The PWS-920P-SQ PSU is designed for quiet, efficient operation.</li>
-        </ul>
-        <p>
-          SnapRAID helps here as well:
-        </p>
-        <ul>
-          <li>Parity syncs are scheduled, not constant like a RAID5 write penalty.</li>
-          <li>Data disks can stay mostly idle outside of read/write periods and SnapRAID runs.</li>
-        </ul>
-        <p>
-          The result is a system that:
-        </p>
-        <ul>
-          <li>Is powerful enough for my home lab needs.</li>
-          <li>Is quiet enough to coexist in a home environment.</li>
-          <li>Uses reasonable power for a fully-populated 16-bay chassis.</li>
-        </ul>
-      </section>
-
-      <section id="lessons">
-        <h2>10. Key Lessons and Final Thoughts</h2>
-        <p>
-          A few big takeaways from this whole process:
-        </p>
-        <ul>
-          <li><strong>Don’t underestimate the risk of proprietary pools.</strong> My Windows Storage Spaces pool failure was total: once the pool metadata and a striped disk were corrupted, the data was effectively gone.</li>
-          <li><strong>Plain filesystems on individual disks are your friend.</strong> With OMV + SnapRAID + MergerFS, each disk is still just EXT4 or XFS, readable on any Linux system.</li>
-          <li><strong>Separate OS from data.</strong> Treat the NAS OS as disposable. Reinstalling OMV should never risk actual data volumes.</li>
-          <li><strong>Let the scheduler do the boring work.</strong> SnapRAID syncs, scrubs, SMART tests, backups, and Portainer exports happen on a schedule, not when I remember.</li>
-          <li><strong>Power efficiency matters long-term.</strong> Swapping out power-hungry CPUs and high-RPM fans adds up in noise reduction and electricity savings.</li>
-        </ul>
-        <p>
-          For my mix of reused hardware, family storage needs, and a focus on power saving and stability, <strong>OpenMediaVault with SnapRAID and MergerFS</strong> turned out to be the ideal solution.
-        </p>
-        <p>
-          If you’re building a home NAS and you care about being able to actually recover your data when things go wrong, it’s worth seriously considering this approach.
-        </p>
-      </section>
-
-      <section id="bonus-led">
-        <h2>11. Bonus: LED Bay Mapping Tool (Generic &amp; Safe)</h2>
-        <p>
-          One extra tool that has been surprisingly useful is a simple script to map physical bays to Linux device names (like <code>/dev/sda</code>, <code>/dev/sdb</code>, etc.) using the backplane LEDs.
-        </p>
-        <p>
-          It works with LSI/Supermicro setups where <code>ledctl</code> can control the front-panel LEDs. The idea is:
-        </p>
-        <ul>
-          <li>Blink one disk at a time.</li>
-          <li>You look at the front of the NAS and type which bay is blinking.</li>
-          <li>The script saves a map of bay → device.</li>
-          <li>Optionally, it generates persistent <code>/dev/bayNN</code> symlinks via udev.</li>
-        </ul>
-
-        <h3>11.1 Requirements</h3>
-        <p>
-          Install <code>ledmon</code> (which includes <code>ledctl</code>):
-        </p>
-        <pre><code>sudo apt update
+          <h3>11.1 Requirements</h3>
+          <p>
+            Install <code>ledmon</code> (which includes <code>ledctl</code>):
+          </p>
+          <pre><code>sudo apt update
 sudo apt install ledmon -y</code></pre>
 
-        <h3>11.2 Generic bay mapping script</h3>
-        <p>
-          Save this as <code>/root/bay-ledmap.sh</code>, make it executable, and run it as root:
-        </p>
-        <pre><code>#!/bin/bash
+          <h3>11.2 Generic bay mapping script</h3>
+          <p>
+            Save this as <code>/root/bay-ledmap.sh</code>, make it executable,
+            and run it as root:
+          </p>
+          <pre><code>#!/bin/bash
 # bay-ledmap.sh
 # -------------------------------------------
 # Generic LED-based disk → bay mapper tool
@@ -921,33 +1177,31 @@ echo
 echo "All LEDs off. Mapping complete!"
 ledctl off=* &gt;/dev/null 2&gt;&amp;1</code></pre>
 
-        <p>
-          This is completely generic: it doesn’t hard-code any of my drives, serials, or bays. Anyone with a similar LSI/Supermicro setup can drop it into their NAS and quickly build a bay map.
-        </p>
-      </section>
-    </main>
+          <p>
+            This is completely generic: it doesn’t hard-code any of my drives,
+            serials, or bays. Anyone with a similar LSI/Supermicro setup can
+            drop it into their NAS and quickly build a bay map.
+          </p>
+        </section>
+      </main>
 
-    <footer>
-      <p>
-        &larr; Back to <a href="/">samsymon.github.io</a>
-      </p>
-      <p>
-        © <span id="year"></span> Sam Symon. All rights reserved.
-      </p>
-    </footer>
-  </div>
+      <footer>
+        <p>&larr; Back to <a href="/">samsymon.github.io</a></p>
+        <p>© <span id="year"></span> Sam Symon. All rights reserved.</p>
+      </footer>
+    </div>
 
-  <script>
-    // Simple year auto-update for footer
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+    <script>
+      // Simple year auto-update for footer
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
 
-  <!-- Lightbox2 JS (for image gallery popups) -->
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"
-    integrity="sha512-YZlJAk46p7vMcW2CY0p8otaaVgG4TldmKCXwemZlSiIU9vNHtTlA5isfIB0c2p1Xh1wrUw3AvwLhpImP+4Z7pA=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  ></script>
-</body>
+    <!-- Lightbox2 JS (for image gallery popups) -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"
+      integrity="sha512-YZlJAk46p7vMcW2CY0p8otaaVgG4TldmKCXwemZlSiIU9vNHtTlA5isfIB0c2p1Xh1wrUw3AvwLhpImP+4Z7pA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </body>
 </html>
